@@ -57,7 +57,7 @@ class Minesweeper:
         Returns:
             Nothing
         """
-        # base case
+        # base case, we never auto-reveal non -1 squares
         if self.board[x][y] != -1:
             return
 
@@ -65,8 +65,9 @@ class Minesweeper:
         self.board[x][y] == len(self.get_neighbors(x, y, 1, True))
 
         for neighbor in self.get_neighbors(x, y, 1, True):
-            x, y = neighbor
-            self.reveal(x, y)
+            i, j = neighbor
+            if self.board[i][j] != -1:
+                self.reveal(i, j)
 
     def get_neighbors(self, x, y, d, find_mine):
         """
