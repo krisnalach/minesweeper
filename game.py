@@ -12,7 +12,7 @@ class Minesweeper:
     0 <= n <= 8 if a square is clicked and has n neighbors
     -1 if a square is neither clicked or flagged
     -2 if a square is flagged
-    -3 if a square is a mine and unclicked or flagged
+    -3 if a square is a mine and unclicked or unflagged
     -4 if a square is a mine and flagged
     Args:
         n - the size of the board (n x n)
@@ -98,6 +98,17 @@ class Minesweeper:
                             neighbors.append((i, j))
         return neighbors
 
+    def flag(self, x, y):
+        """
+        Flag a square at position (x, y)
+        Args:
+            x - the x index of the square
+            y - the y index of the square
+        Returns:
+            Nothing
+        """
+        self.board[x][y] += -1
+
     def generate_actions(self):
         """
         Generate a list of possible actions to give to an agent
@@ -111,7 +122,6 @@ class Minesweeper:
                 y - the y index of the title
                 cost - the associated cost of performing the action
         """
-        # TODO: Complete
 
     def print_board(self):
         """
@@ -124,9 +134,20 @@ class Minesweeper:
         print(np.matrix(self.board))
 
 
+class MineMaster:
+    """
+    Class representing a Minesweeper AI trained using Deep Q-Networks
+    """
+
+    def __init__(self, keys):
+        q_table = {}
+        for key in keys:
+            q_table[key] = 0
+
+
 g = Minesweeper(5, 10)
 g.board = [[-1, -1, -1, -1, -1], [-3, -3, -1, -1, -1],
            [-1, -1, -3, -3, -1], [-1, -1, -1, -1, -1], [-3, -1, -1, -1, -1]]
 print(np.matrix(g.board))
-g.reveal(0, 4)
+g.reveal(4, 2)
 print(np.matrix(g.board))
