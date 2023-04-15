@@ -62,11 +62,18 @@ class Minesweeper:
             return
 
         # updating revealed square to show neighboring mines
-        self.board[x][y] == len(self.get_neighbors(x, y, 1, True))
+        mines = self.get_neighbors(x, y, 1, True)
+        self.board[x][y] = len(mines)
 
-        for neighbor in self.get_neighbors(x, y, 1, True):
+        # second base case, stop revealing when we've shown information
+        if len(mines) != 0:
+            return
+
+        # only want to consider neighbors that aren't mines
+        for neighbor in set(self.get_neighbors(x, y, 1, False)) - set(mines):
             i, j = neighbor
-            if self.board[i][j] != -1:
+            # reveal rule: only reveal an adjacent tile if it's unrevealed
+            if self.board[i][j] == -1:
                 self.reveal(i, j)
 
     def get_neighbors(self, x, y, d, find_mine):
@@ -117,6 +124,9 @@ class Minesweeper:
         print(np.matrix(self.board))
 
 
-g = Minesweeper(8, 10)
-g.place_mines((3, 3))
-g.print_board()
+g = Minesweeper(5, 10)
+g.board = [[-1, -1, -1, -1, -1], [-3, -3, -1, -1, -1],
+           [-1, -1, -3, -3, -1], [-1, -1, -1, -1, -1], [-3, -1, -1, -1, -1]]
+print(np.matrix(g.board))
+g.reveal(0, 4)
+print(np.matrix(g.board))
