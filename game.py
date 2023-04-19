@@ -1,10 +1,8 @@
+import pygame
 import numpy as np
 import random
 
-# New approach, made with RL in mind
 
-
-# TODO: Define the state space
 class Minesweeper:
     """
     Minesweeper class representing an entire game of minesweeper
@@ -98,6 +96,22 @@ class Minesweeper:
                             neighbors.append((i, j))
         return neighbors
 
+    def click(self, x, y):
+        """
+        'Click' on a square at position (x, y)
+        Handles resulting logic
+        Args:
+            x - the x index of the square
+            y - the y index of the square
+        Returns:
+            Nothing
+        """
+        if self.board[x][y] == -1:
+            self.reveal(x, y)
+        elif self.board[x][y] == -3:
+            # TODO: Figure out how to handle game over logic
+            self.game_over()
+
     def flag(self, x, y):
         """
         Flag a square at position (x, y)
@@ -123,6 +137,23 @@ class Minesweeper:
                 cost - the associated cost of performing the action
         """
 
+    def draw_board(self, BOARD_WIDTH, BOARD_HEIGHT):
+        """
+        Function to draw out the board using Pygame
+        Args:
+            BOARD_WIDTH - width of the board in terms of square count
+            BOARD_HEIGHT - height of the board in terms of square count
+        Returns:
+            None
+        """
+        for x in range(BOARD_WIDTH):
+            for y in range(BOARD_HEIGHT):
+                # this allows us to use the same indexing for the board
+                if self.board[x][y] in range(0, 9):
+                elif self.board[x][y] == -1:
+                elif self.board[x][y] == -2:
+                elif self.board[x][y] == -3:
+                elif self.board[x][y] == -4:
     def print_board(self):
         """
         Function to print out the board
@@ -145,9 +176,33 @@ class MineMaster:
             q_table[key] = 0
 
 
-g = Minesweeper(5, 10)
-g.board = [[-1, -1, -1, -1, -1], [-3, -3, -1, -1, -1],
-           [-1, -1, -3, -3, -1], [-1, -1, -1, -1, -1], [-3, -1, -1, -1, -1]]
-print(np.matrix(g.board))
-g.reveal(4, 2)
-print(np.matrix(g.board))
+def run_game():
+    """
+    Main game running loop
+    Args:
+        None
+    Returns:
+        Nothing
+    """
+    # initializing
+    pygame.init()
+    clock = pygame.time.Clock()
+    WIN_WIDTH = 1024
+    WIN_HEIGHT = 764
+    PLAY_WIDTH = 600
+    PLAY_HEIGHT = 600
+    SQUARE_SIZE = 40
+    window = pygame.display.set_mode((WIN_WIDTH, WIN_HEIGHT))
+    pygame.display.set_caption("")
+
+    # Define the board sizes in terms of counts of squares
+    BOARD_WIDTH = int(WIN_WIDTH / SQUARE_SIZE)
+    BOARD_HEIGHT = int(WIN_WIDTH / SQUARE_SIZE)
+
+
+def main():
+    run_game()
+
+
+if __name__ == "__main__":
+    main()
