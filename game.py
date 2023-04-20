@@ -1,6 +1,7 @@
 import pygame
 import numpy as np
 import random
+from sprites import load_images
 
 
 class Minesweeper:
@@ -12,6 +13,7 @@ class Minesweeper:
     -2 if a square is flagged
     -3 if a square is a mine and unclicked or unflagged
     -4 if a square is a mine and flagged
+    -5 if a square is a mine and clicked
     Args:
         n - the size of the board (n x n)
         mine_cnt - the number of mines
@@ -21,7 +23,6 @@ class Minesweeper:
         self.board = [[-1 for i in range(n)] for j in range(n)]
         self.n = n
         self.mines = mine_cnt
-        self.first_clck = (0, 0)
 
     def place_mines(self, first_click):
         """
@@ -121,7 +122,17 @@ class Minesweeper:
         Returns:
             Nothing
         """
-        self.board[x][y] += -1
+        sq = self.board[x][y]
+        if sq == -1:
+            self.board[x][y] = -2
+        elif sq == -3:
+            self.board[x][y] = -4
+
+    def game_over(self):
+        for x in range(self.n):
+            for y in range(self.n):
+                if self.board[x][y] == -3:
+                    self.board[x][y] = -5
 
     def generate_actions(self):
         """
@@ -137,23 +148,31 @@ class Minesweeper:
                 cost - the associated cost of performing the action
         """
 
-    def draw_board(self, BOARD_WIDTH, BOARD_HEIGHT):
+    def draw_board(self, BOARD_WIDTH, BOARD_HEIGHT, images, window):
         """
         Function to draw out the board using Pygame
         Args:
             BOARD_WIDTH - width of the board in terms of square count
             BOARD_HEIGHT - height of the board in terms of square count
+            images - dictionary of images to use for the game squares
+            window - the surface to draw on
         Returns:
             None
         """
         for x in range(BOARD_WIDTH):
             for y in range(BOARD_HEIGHT):
                 # this allows us to use the same indexing for the board
-                if self.board[x][y] in range(0, 9):
-                elif self.board[x][y] == -1:
-                elif self.board[x][y] == -2:
-                elif self.board[x][y] == -3:
-                elif self.board[x][y] == -4:
+                sq = self.board[x][y]
+                if sq in range(0, 9):
+                    window.blit(images["nums"][sq], (x * 40, y * 40))
+                elif sq == -1 or sq == -3:
+                    window.blit(images["block"], (x * 40, y * 40))
+                elif sq == -2 or sq == -4:
+                    print("why")
+                    window.blit(images["flagged"], (x * 40, y * 40))
+                elif sq == -5:
+                    window.blit(images["mine"], (x * 40, y * 40))
+
     def print_board(self):
         """
         Function to print out the board
@@ -187,8 +206,8 @@ def run_game():
     # initializing
     pygame.init()
     clock = pygame.time.Clock()
-    WIN_WIDTH = 1024
-    WIN_HEIGHT = 764
+    WIN_WIDTH = 600
+    WIN_HEIGHT = 600
     PLAY_WIDTH = 600
     PLAY_HEIGHT = 600
     SQUARE_SIZE = 40
@@ -196,8 +215,42 @@ def run_game():
     pygame.display.set_caption("")
 
     # Define the board sizes in terms of counts of squares
-    BOARD_WIDTH = int(WIN_WIDTH / SQUARE_SIZE)
-    BOARD_HEIGHT = int(WIN_WIDTH / SQUARE_SIZE)
+    BOARD_WIDTH = int(PLAY_WIDTH / SQUARE_SIZE)
+    BOARD_HEIGHT = int(PLAY_HEIGHT / SQUARE_SIZE)
+
+    images = load_images()
+    game = Minesweeper(15, 30)
+    game.draw_board(BOARD_WIDTH, BOARD_HEIGHT, images, window)
+    pygame.display.update()
+
+    # main game loop
+    first_click = True
+    running = True
+    while running:
+        # event handling
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                running = False
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                # getting mouse information
+                left, middle, right = pygame.mouse.get_pressed()
+                x, y = event.pos
+                x = int(x / SQUARE_SIZE)
+                y = int(y / SQUARE_SIZE)
+
+                if first_click:
+                    first_click = False
+                    game.place_mines((x, y))
+
+                if left:
+                    game.click(x, y)
+                elif right:
+                    game.flag(x, y)
+
+                game.draw_board(BOARD_WIDTH, BOARD_HEIGHT, images, window)
+                pygame.display.update()
+
+                game.print_board()
 
 
 def main():
