@@ -37,6 +37,7 @@ class Minesweeper:
         illegal_spots = self.get_neighbors(
             x, y, 2, False
         )  # ensuring that you can't insta-lose
+        illegal_spots.append((x, y))  # get_neighbors doesn't consider itself
         # generating mines
         while len(mines_to_place) < self.mines:
             mine = (random.randrange(self.n), random.randrange(self.n))
@@ -93,7 +94,7 @@ class Minesweeper:
                     if not find_mine:
                         neighbors.append((i, j))
                     else:
-                        if self.board[i][j] == -3:
+                        if self.board[i][j] in {-3, -4, -5}:
                             neighbors.append((i, j))
         return neighbors
 
@@ -241,6 +242,7 @@ def run_game():
                 if first_click:
                     first_click = False
                     game.place_mines((x, y))
+                    print((x, y))
 
                 if left:
                     game.click(x, y)
