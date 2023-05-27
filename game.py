@@ -129,6 +129,21 @@ class Minesweeper:
         elif sq == -3:
             self.board[x][y] = -4
 
+    def unflag(self, x, y):
+        """
+        Unflag a square at position (x, y)
+        Args:
+            x - the x index of the square
+            y - the y index of the square
+        Returns:
+            Nothing
+        """
+        sq = self.board[x][y]
+        if sq == -2:
+            self.board[x][y] = -1
+        if sq == -4:
+            self.board[x][y] = -3
+
     def game_over(self):
         for x in range(self.n):
             for y in range(self.n):
@@ -245,9 +260,12 @@ def run_game():
                     print((x, y))
 
                 if left:
-                    game.click(x, y)
+                    game.click(x, y)  # handle clear action
                 elif right:
-                    game.flag(x, y)
+                    if game.board[x][y] in {-2, -4}:  # handle unflag action
+                        game.unflag(x, y)
+                    else:
+                        game.flag(x, y)  # handle flag action
 
                 game.draw_board(BOARD_WIDTH, BOARD_HEIGHT, images, window)
                 pygame.display.update()
