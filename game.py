@@ -1,6 +1,7 @@
 import pygame
 import numpy as np
 import random
+import time
 from sprites import load_images
 
 
@@ -23,6 +24,7 @@ class Minesweeper:
         self.board = [[-1 for i in range(n)] for j in range(n)]
         self.n = n
         self.mines = mine_cnt
+        self.flag_cnt = 0
 
     def place_mines(self, first_click):
         """
@@ -112,7 +114,7 @@ class Minesweeper:
             self.reveal(x, y)
         elif self.board[x][y] == -3:
             # TODO: Figure out how to handle game over logic
-            self.game_over()
+            self.lose()
 
     def flag(self, x, y):
         """
@@ -128,6 +130,7 @@ class Minesweeper:
             self.board[x][y] = -2
         elif sq == -3:
             self.board[x][y] = -4
+        self.flag_cnt += 1
 
     def unflag(self, x, y):
         """
@@ -143,8 +146,46 @@ class Minesweeper:
             self.board[x][y] = -1
         if sq == -4:
             self.board[x][y] = -3
+        self.flag_cnt -= 1
 
-    def game_over(self):
+    def game_end(self):
+        """
+        Iterate over the board to see if the game has ended
+        Args:
+            None
+        Returns:
+            Nothing
+        """
+        remaining = []
+        for x in range(self.n):
+            for y in range(self.n):
+                if self.board[x][y] == -5:  # lose condition
+                    self.lose()
+                if self.board[x][y] in {-1, -2}:
+                    remaining.append(self.board[x][y])
+        if len(remaining) == 0:  # win condition
+            self.win()
+
+    def win(self):
+        """
+        End the game on a win and prompt the
+        restart screen
+        Args:
+            None
+        Returns:
+            Nothing
+        """
+        print("GAME WIN")
+
+    def lose(self):
+        """
+        End the game on a loss by revealing all mines
+        and prompting the restart screen
+        Args:
+            None
+        Returns:
+            Nothing
+        """
         for x in range(self.n):
             for y in range(self.n):
                 if self.board[x][y] == -3:
@@ -184,7 +225,6 @@ class Minesweeper:
                 elif sq == -1 or sq == -3:
                     window.blit(images["block"], (x * 40, y * 40))
                 elif sq == -2 or sq == -4:
-                    print("why")
                     window.blit(images["flagged"], (x * 40, y * 40))
                 elif sq == -5:
                     window.blit(images["mine"], (x * 40, y * 40))
@@ -223,10 +263,13 @@ def run_game():
     pygame.init()
     clock = pygame.time.Clock()
     WIN_WIDTH = 600
-    WIN_HEIGHT = 600
+    WIN_HEIGHT = 650
     PLAY_WIDTH = 600
     PLAY_HEIGHT = 600
     SQUARE_SIZE = 40
+    BAR_HEIGHT = 50
+    mine_cnt = 10
+    squares = 15
     window = pygame.display.set_mode((WIN_WIDTH, WIN_HEIGHT))
     pygame.display.set_caption("")
 
@@ -234,9 +277,22 @@ def run_game():
     BOARD_WIDTH = int(PLAY_WIDTH / SQUARE_SIZE)
     BOARD_HEIGHT = int(PLAY_HEIGHT / SQUARE_SIZE)
 
+    # intialize font
+    font_name = pygame.font.get_default_font()
+    font_size = 24
+    font = pygame.font.Font(font_name, font_size)
+
     images = load_images()
-    game = Minesweeper(15, 30)
+    game = Minesweeper(squares, mine_cnt)
     game.draw_board(BOARD_WIDTH, BOARD_HEIGHT, images, window)
+
+    # add bottom bar ui and add on the mines left counter
+    bar_ui = pygame.Surface((WIN_WIDTH, BAR_HEIGHT))
+    mine_text = font.render(f"Mines: {str(mine_cnt)}", True, (0, 0, 0))
+    bar_ui.fill((255, 255, 255))
+    bar_ui.blit(mine_text, (0, BAR_HEIGHT / 2))
+    window.blit(bar_ui, (0, WIN_HEIGHT - BAR_HEIGHT))
+
     pygame.display.update()
 
     # main game loop
@@ -251,25 +307,37 @@ def run_game():
                 # getting mouse information
                 left, middle, right = pygame.mouse.get_pressed()
                 x, y = event.pos
-                x = int(x / SQUARE_SIZE)
-                y = int(y / SQUARE_SIZE)
 
-                if first_click:
-                    first_click = False
-                    game.place_mines((x, y))
-                    print((x, y))
+                if y <= BOARD_HEIGHT * SQUARE_SIZE:  # prevent out of bounds errors
+                    x = int(x / SQUARE_SIZE)
+                    y = int(y / SQUARE_SIZE)
 
-                if left:
-                    game.click(x, y)  # handle clear action
-                elif right:
-                    if game.board[x][y] in {-2, -4}:  # handle unflag action
-                        game.unflag(x, y)
-                    else:
-                        game.flag(x, y)  # handle flag action
+                    if first_click:
+                        first_click = False
+                        game.place_mines((x, y))
+                        print((x, y))
 
+                    if left:
+                        game.click(x, y)  # handle clear action
+                    elif right:
+                        if game.board[x][y] in {-2, -4}:  # handle unflag action
+                            game.unflag(x, y)
+                        else:
+                            game.flag(x, y)  # handle flag action
+
+                # check if game over
+                game.game_end()
+
+                # updating mine counter
+                mine_cnt = game.mines - game.flag_cnt
+                mine_text = font.render(f"Mines: {str(mine_cnt)}", True, (0, 0, 0))
+
+                # re-render board + ui
                 game.draw_board(BOARD_WIDTH, BOARD_HEIGHT, images, window)
+                bar_ui.fill((255, 255, 255))
+                bar_ui.blit(mine_text, (0, BAR_HEIGHT / 2))
+                window.blit(bar_ui, (0, WIN_HEIGHT - BAR_HEIGHT))
                 pygame.display.update()
-
                 game.print_board()
 
 
