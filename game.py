@@ -1,6 +1,7 @@
 import pygame
 import numpy as np
 import random
+import sys
 import time
 from sprites import load_images
 
@@ -25,6 +26,7 @@ class Minesweeper:
         self.n = n
         self.mines = mine_cnt
         self.flag_cnt = 0
+        self.first_click = True
 
     def place_mines(self, first_click):
         """
@@ -128,9 +130,10 @@ class Minesweeper:
         sq = self.board[x][y]
         if sq == -1:
             self.board[x][y] = -2
+            self.flag_cnt += 1
         elif sq == -3:
             self.board[x][y] = -4
-        self.flag_cnt += 1
+            self.flag_cnt += 1
 
     def unflag(self, x, y):
         """
@@ -144,9 +147,10 @@ class Minesweeper:
         sq = self.board[x][y]
         if sq == -2:
             self.board[x][y] = -1
+            self.flag_cnt -= 1
         if sq == -4:
             self.board[x][y] = -3
-        self.flag_cnt -= 1
+            self.flag_cnt -= 1
 
     def game_end(self):
         """
@@ -154,17 +158,19 @@ class Minesweeper:
         Args:
             None
         Returns:
-            Nothing
+            Strings corresponding to a victory or a loss
         """
         remaining = []
         for x in range(self.n):
             for y in range(self.n):
                 if self.board[x][y] == -5:  # lose condition
-                    self.lose()
+                    return self.lose()
                 if self.board[x][y] in {-1, -2}:
                     remaining.append(self.board[x][y])
         if len(remaining) == 0:  # win condition
-            self.win()
+            return self.win()
+        # game isn't over, return accordingly
+        return "continue"
 
     def win(self):
         """
@@ -173,9 +179,9 @@ class Minesweeper:
         Args:
             None
         Returns:
-            Nothing
+            The string: "You won!"
         """
-        print("GAME WIN")
+        return "You won!"
 
     def lose(self):
         """
@@ -184,12 +190,26 @@ class Minesweeper:
         Args:
             None
         Returns:
-            Nothing
+            The string: "You lost!"
         """
         for x in range(self.n):
             for y in range(self.n):
                 if self.board[x][y] == -3:
                     self.board[x][y] = -5
+        return "You lost!"
+
+    def restart_game(self):
+        """
+        Restart the game by resetting all variables to
+        their initial state
+        Args:
+            None
+        Returns:
+            Nothing
+        """
+        self.board = [[-1 for i in range(self.n)] for j in range(self.n)]
+        self.first_click = True
+        self.flag_cnt = 0
 
     def generate_actions(self):
         """
@@ -205,19 +225,19 @@ class Minesweeper:
                 cost - the associated cost of performing the action
         """
 
-    def draw_board(self, BOARD_WIDTH, BOARD_HEIGHT, images, window):
+    def draw_board(self, board_width, board_height, images, window):
         """
         Function to draw out the board using Pygame
         Args:
-            BOARD_WIDTH - width of the board in terms of square count
-            BOARD_HEIGHT - height of the board in terms of square count
+            board_width - width of the board in terms of square count
+            board_height - height of the board in terms of square count
             images - dictionary of images to use for the game squares
             window - the surface to draw on
         Returns:
             None
         """
-        for x in range(BOARD_WIDTH):
-            for y in range(BOARD_HEIGHT):
+        for x in range(board_width):
+            for y in range(board_height):
                 # this allows us to use the same indexing for the board
                 sq = self.board[x][y]
                 if sq in range(0, 9):
@@ -262,44 +282,49 @@ def run_game():
     # initializing
     pygame.init()
     clock = pygame.time.Clock()
-    WIN_WIDTH = 600
-    WIN_HEIGHT = 650
-    PLAY_WIDTH = 600
-    PLAY_HEIGHT = 600
-    SQUARE_SIZE = 40
-    BAR_HEIGHT = 50
+    win_width = 600
+    win_height = 650
+    play_width = 600
+    play_height = 600
+    square_size = 40
+    bar_height = 50
     mine_cnt = 10
     squares = 15
-    window = pygame.display.set_mode((WIN_WIDTH, WIN_HEIGHT))
+    window = pygame.display.set_mode((win_width, win_height))
     pygame.display.set_caption("")
 
     # Define the board sizes in terms of counts of squares
-    BOARD_WIDTH = int(PLAY_WIDTH / SQUARE_SIZE)
-    BOARD_HEIGHT = int(PLAY_HEIGHT / SQUARE_SIZE)
+    board_width = int(play_width / square_size)
+    board_height = int(play_height / square_size)
 
     # intialize font
     font_name = pygame.font.get_default_font()
     font_size = 24
     font = pygame.font.Font(font_name, font_size)
 
+    # initally draw whole board
     images = load_images()
     game = Minesweeper(squares, mine_cnt)
-    game.draw_board(BOARD_WIDTH, BOARD_HEIGHT, images, window)
+    game.draw_board(board_width, board_height, images, window)
 
     # add bottom bar ui and add on the mines left counter
-    bar_ui = pygame.Surface((WIN_WIDTH, BAR_HEIGHT))
+    bar_ui = pygame.Surface((win_width, bar_height))
     mine_text = font.render(f"Mines: {str(mine_cnt)}", True, (0, 0, 0))
     bar_ui.fill((255, 255, 255))
-    bar_ui.blit(mine_text, (0, BAR_HEIGHT / 2))
-    window.blit(bar_ui, (0, WIN_HEIGHT - BAR_HEIGHT))
+    bar_ui.blit(mine_text, (0, bar_height / 2))
+    window.blit(bar_ui, (0, win_height - bar_height))
+
+    # initializing restart UI features
+    restart_ui_width = play_width
+    restart_ui_height = 200
+    restart_ui_surface = pygame.Surface((restart_ui_width, restart_ui_height))
+    restart_ui_surface.fill((255, 255, 255))
 
     pygame.display.update()
 
     # main game loop
-    first_click = True
     running = True
     while running:
-        # event handling
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
@@ -308,37 +333,108 @@ def run_game():
                 left, middle, right = pygame.mouse.get_pressed()
                 x, y = event.pos
 
-                if y <= BOARD_HEIGHT * SQUARE_SIZE:  # prevent out of bounds errors
-                    x = int(x / SQUARE_SIZE)
-                    y = int(y / SQUARE_SIZE)
+                over = game.game_end()
+                if over == "continue":
+                    if y <= board_height * square_size:  # prevent out of bounds errors
+                        x = int(x / square_size)
+                        y = int(y / square_size)
 
-                    if first_click:
-                        first_click = False
-                        game.place_mines((x, y))
-                        print((x, y))
+                        if game.first_click:
+                            game.first_click = False
+                            game.place_mines((x, y))
+                            print((x, y))
 
-                    if left:
-                        game.click(x, y)  # handle clear action
-                    elif right:
-                        if game.board[x][y] in {-2, -4}:  # handle unflag action
-                            game.unflag(x, y)
-                        else:
-                            game.flag(x, y)  # handle flag action
+                        if left:
+                            game.click(x, y)  # handle clear action
+                        elif right:
+                            if game.board[x][y] in {-2, -4}:  # handle unflag action
+                                game.unflag(x, y)
+                            else:
+                                game.flag(x, y)  # handle flag action
+
+                    # updating mine counter
+                    mine_cnt = game.mines - game.flag_cnt
+                    mine_text = font.render(f"Mines: {str(mine_cnt)}", True, (0, 0, 0))
+
+                    # re-render board + ui
+                    game.draw_board(board_width, board_height, images, window)
+                    bar_ui.fill((255, 255, 255))
+                    bar_ui.blit(mine_text, (0, bar_height / 2))
+                    window.blit(bar_ui, (0, win_height - bar_height))
+
+                over = game.game_end()
 
                 # check if game over
-                game.game_end()
+                if over != "continue":
+                    # render "you win" or "you lose" message
+                    game_result_text = font.render(over, True, (0, 0, 0))
+                    result_text_pos = (
+                        restart_ui_width // 2 - game_result_text.get_width() // 2,
+                        25,
+                    )
+                    # render restart button text
+                    restart_button_text = font.render("Restart", True, (0, 0, 0))
+                    restart_button_pos = (
+                        restart_ui_width // 4 - restart_button_text.get_width() // 2,
+                        125,
+                    )
+                    # render exit button text
+                    exit_button_text = font.render("Exit", True, (0, 0, 0))
+                    exit_button_pos = (
+                        3 * restart_ui_width // 4 - exit_button_text.get_width() // 2,
+                        125,
+                    )
 
-                # updating mine counter
-                mine_cnt = game.mines - game.flag_cnt
-                mine_text = font.render(f"Mines: {str(mine_cnt)}", True, (0, 0, 0))
+                    # add onto restart ui
+                    restart_ui_surface.blit(game_result_text, result_text_pos)
+                    restart_ui_surface.blit(restart_button_text, restart_button_pos)
+                    restart_ui_surface.blit(exit_button_text, exit_button_pos)
 
-                # re-render board + ui
-                game.draw_board(BOARD_WIDTH, BOARD_HEIGHT, images, window)
-                bar_ui.fill((255, 255, 255))
-                bar_ui.blit(mine_text, (0, BAR_HEIGHT / 2))
-                window.blit(bar_ui, (0, WIN_HEIGHT - BAR_HEIGHT))
+                    # create appropriate buttons
+                    restart_button_rect = pygame.Rect(restart_button_pos, (100, 50))
+                    exit_button_rect = pygame.Rect(exit_button_pos, (100, 50))
+
+                    # calculate the centered position for restart button
+                    restart_button_text_rect = restart_button_text.get_rect()
+                    restart_button_rect.center = (
+                        restart_button_pos[0] + restart_button_text_rect.width // 2,
+                        restart_button_pos[1] + restart_button_text_rect.height // 2,
+                    )
+
+                    # calculate the centered position for exit button
+                    exit_button_text_rect = exit_button_text.get_rect()
+                    exit_button_rect.center = (
+                        exit_button_pos[0] + exit_button_text_rect.width // 2,
+                        exit_button_pos[1] + exit_button_text_rect.height // 2,
+                    )
+
+                    # draw buttons
+                    pygame.draw.rect(
+                        restart_ui_surface, (0, 0, 0), restart_button_rect, 2
+                    )
+                    pygame.draw.rect(restart_ui_surface, (0, 0, 0), exit_button_rect, 2)
+                    window.blit(restart_ui_surface, (0, win_height / 4))
+
+                    # adjustive relative positioning
+                    adjusted_pos = (
+                        event.pos[0] - 0,
+                        event.pos[1] - win_height / 4,
+                    )
+
+                    print(adjusted_pos)
+                    print(restart_button_rect)
+                    # handle restart and exit
+                    if restart_button_rect.collidepoint(adjusted_pos):
+                        # restart the game
+                        game.restart_game()
+                        game.draw_board(board_width, board_height, images, window)
+
+                    if exit_button_rect.collidepoint(adjusted_pos):
+                        # quit the game
+                        pygame.quit()
+                        sys.exit()
+
                 pygame.display.update()
-                game.print_board()
 
 
 def main():
