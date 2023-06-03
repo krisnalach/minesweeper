@@ -7,4 +7,7 @@ Focus is feeding this game into a reinforcement learning agent
 to be able to play minesweeper
 
 Game UI is a low priority at the moment
+Mostly complete but a few UI bugs
 
+Following the tutorial from https://www.youtube.com/watch?v=L8ypSXwyBds
+for implementing the DQN with PyTorch

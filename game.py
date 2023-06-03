@@ -210,22 +210,6 @@ class Minesweeper:
         self.first_click = True
         self.flag_cnt = 0
 
-    def generate_actions(self):
-        """
-        Generate a list of possible actions to give to an agent
-        Args:
-            None
-        Returns
-            A list of tuples of the form (x, y),
-            where x is the x coordinate of the square and y is the
-            y coordinate of the square
-        """
-        actions = []
-        for i in range(self.n):
-            for j in range(self.n):
-                actions.append((i, j))
-        return actions
-
     def play(self, action):
         """
         Main function the AI uses to update the game environment
@@ -240,6 +224,10 @@ class Minesweeper:
         reward = 0
         game_over = False
         score = 0
+
+        if self.first_click:
+            self.place_mines((x, y))
+            self.first_click = False
 
         if self.board[x][y] == -1:  # safe square
             self.reveal(x, y)
@@ -286,6 +274,7 @@ class Minesweeper:
     def print_board(self):
         """
         Function to print out the board
+        Mainly used for debugging
         Args:
             None
         Returns:
