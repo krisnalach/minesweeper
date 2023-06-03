@@ -225,19 +225,24 @@ class Minesweeper:
         game_over = False
         score = 0
 
-        if self.first_click:
+        if self.first_click:  # first click has no reward
             self.place_mines((x, y))
-            self.first_click = False
 
         if self.board[x][y] == -1:  # safe square
+            if (
+                self.is_progress(x, y) or self.first_click
+            ):  # reward meaningful moves (or the first move)
+                reward += 0.3
+                self.first_click = False
+            else:
+                reward -= 0.3  # punish 'guess' moves
             self.reveal(x, y)
-            reward += 10
-        elif self.board[x][y] == -3:  # game over
+        elif self.board[x][y] == -3:  # game over, loss
             self.lose()
             game_over = True
-            reward -= 10
+            reward -= 1
         elif self.board[x][y] in {0, 1, 2, 3, 4, 5, 6, 7, 8}:
-            reward -= 1  # punish "nothing" moves
+            reward -= 0.5  # punish "nothing" moves
 
         # calculate score (number of cleared squares)
         for i in range(self.n):
@@ -245,9 +250,31 @@ class Minesweeper:
                 if self.board[i][j] in {0, 1, 2, 3, 4, 5, 6, 7, 8}:
                     score += 1
 
+        if score == self.n**2 - self.mines:  # game over, win
+            game_over = True
+            reward = 1
+
         return reward, game_over, score
 
-    def draw_board(self, board_width, board_height, images, window):
+    def is_progress(self, x, y):
+        """
+        Determine whether the type of safe clear at (x, y) is progress
+        or a random guess
+        Args:
+            x - the x coordinate
+            y - the y coordinate
+        Returns:
+            T if progress, F if random guess
+        """
+        progress = False
+        neighbors = self.get_neighbors(x, y, 1, False)
+        for neighbor in neighbors:
+            if neighbor in {0, 1, 2, 3, 4, 5, 6, 7, 8}:
+                progress = True
+                break
+        return progress
+
+    def draw_board(self, board_width, board_height, images, window, block_size):
         """
         Function to draw out the board using Pygame
         Args:
@@ -255,6 +282,7 @@ class Minesweeper:
             board_height - height of the board in terms of square count
             images - dictionary of images to use for the game squares
             window - the surface to draw on
+            block_size - the size of an individual block in pixels
         Returns:
             None
         """
@@ -263,13 +291,13 @@ class Minesweeper:
                 # this allows us to use the same indexing for the board
                 sq = self.board[x][y]
                 if sq in range(0, 9):
-                    window.blit(images["nums"][sq], (x * 40, y * 40))
+                    window.blit(images["nums"][sq], (x * block_size, y * block_size))
                 elif sq == -1 or sq == -3:
-                    window.blit(images["block"], (x * 40, y * 40))
+                    window.blit(images["block"], (x * block_size, y * block_size))
                 elif sq == -2 or sq == -4:
-                    window.blit(images["flagged"], (x * 40, y * 40))
+                    window.blit(images["flagged"], (x * block_size, y * block_size))
                 elif sq == -5:
-                    window.blit(images["mine"], (x * 40, y * 40))
+                    window.blit(images["mine"], (x * block_size, y * block_size))
 
     def print_board(self):
         """

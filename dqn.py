@@ -104,10 +104,10 @@ class QTrainer:
                 # apply R + y(max Q(next_state))
                 Q_new = reward[i] + self.gamma * T.max(self.model(next_state[i]))
 
-            target[i][T.argmax(action).item()] = Q_new
+            target[i][T.argmax(action[i]).item()] = Q_new
 
-        self.optimzer.zero_grad()
+        self.optimizer.zero_grad()
         loss = self.loss(target, pred)
         loss.backward()
 
-        self.optimzer.step()
+        self.optimizer.step()
