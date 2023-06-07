@@ -45,4 +45,4 @@ def format(image):
     Returns:
         The resized image
     """
-    return pygame.transform.scale(image, (75, 75))
+    return pygame.transform.scale(image, (120, 120))

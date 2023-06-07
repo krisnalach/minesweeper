@@ -23,10 +23,10 @@ def run_game():
     win_height = 650
     play_width = 600
     play_height = 600
-    square_size = 75
+    square_size = 120
     bar_height = 50
     mine_cnt = 4
-    squares = 8
+    squares = 5
     window = pygame.display.set_mode((win_width, win_height))
     pygame.display.set_caption("")
 
@@ -42,7 +42,7 @@ def run_game():
     # initally draw whole board
     images = load_images()
     game = Minesweeper(squares, mine_cnt)
-    game.draw_board(board_width, board_height, images, window, 75)
+    game.draw_board(board_width, board_height, images, window, 120)
 
     # add bottom bar ui and add on the mines left counter
     bar_ui = pygame.Surface((win_width, bar_height))
@@ -94,7 +94,7 @@ def run_game():
                     mine_text = font.render(f"Mines: {str(mine_cnt)}", True, (0, 0, 0))
 
                     # re-render board + ui
-                    game.draw_board(board_width, board_height, images, window, 75)
+                    game.draw_board(board_width, board_height, images, window, 120)
                     bar_ui.fill((255, 255, 255))
                     bar_ui.blit(mine_text, (0, bar_height / 2))
                     window.blit(bar_ui, (0, win_height - bar_height))

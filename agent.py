@@ -33,7 +33,7 @@ class Agent:
         self.batch_size = batch_size
         self.lr = lr
         self.n = n
-        self.model = Linear_QNet(n**2, 512, 512, n**2)
+        self.model = Linear_QNet(n**2, 128, 128, n**2)
         self.trainer = QTrainer(self.model, lr, self.gamma)
         self.action_space = np.array([i for i in range(n**2)], dtype=int)
 
@@ -45,7 +45,8 @@ class Agent:
         Returns:
             The state of the board, represented as a flattened matrix
         """
-        state = np.array([i for row in game.board for i in row], dtype=int)
+        state = np.array(game.board)
+        state = state.flatten("F")
         return np.where(state == -3, -1, state)  # obscure mine positions to the agent
 
     def remember(self, state, action, reward, next_state, done):
@@ -121,7 +122,6 @@ class Agent:
                 y = j % game.n
                 if game.board[x][y] in {0, 1, 2, 3, 4, 5, 6, 7, 8}:
                     temp[j] = -np.Infinity
-
             action = np.argmax(temp)
 
         return int(action)
@@ -133,25 +133,35 @@ def train():
     plot_avg_reward = []
     wins = 0
     reward_tot = 0
-    n = 8
+    n = 5
     record = 0
     # initialize agent and game
     agent = Agent(
-        epsilon=0.1,
-        eps_dec=0.01,
+        epsilon=1,
+        eps_dec=0,
         gamma=0,
-        max_mem=100000,
-        batch_size=1000,
-        lr=0.001,
-        n=8,
+        max_mem=1000,
+        batch_size=64,
+        lr=0.005,
+        n=5,
     )
-    game = Minesweeper(n=8, mine_cnt=10)
+    game = Minesweeper(n=5, mine_cnt=2)
+
+    game.board = [
+        [-1, -1, -1, -1, -1],
+        [-1, -1, -1, -1, -1],
+        [-1, -1, -1, -1, -3],
+        [-1, -1, -1, -1, -1],
+        [-1, -1, -1, -1, -3],
+    ]
+
+    game.first_click = False
 
     # initialize UI
     pygame.init()
     win_width, win_height = 600, 600
     play_width, play_height = 600, 600
-    square_size = 75
+    square_size = 120
     window = pygame.display.set_mode((win_width, win_height))
     pygame.display.set_caption("Minesweeper")
 
@@ -178,8 +188,6 @@ def train():
         state_new = agent.get_state(game)
         reward_tot += reward
 
-        # print(f"Move taken: ({x}, {y})")
-
         # draw the board to reflect the action taken
         game.draw_board(board_width, board_height, images, window, square_size)
         pygame.display.update()
@@ -193,6 +201,14 @@ def train():
         if done:
             # train the long memory of agent, plot results
             game.restart_game()
+            game.board = [
+                [-1, -1, -1, -1, -1],
+                [-1, -1, -1, -1, -1],
+                [-1, -1, -1, -1, -3],
+                [-1, -1, -1, -1, -1],
+                [-1, -1, -1, -1, -3],
+            ]
+            game.first_click = False
             agent.n_games += 1
             agent.train_long_memory()
 
@@ -201,8 +217,10 @@ def train():
                 record = score
                 agent.model.save()
 
-            if score == n**2 - 10:  # win
+            if score == n**2 - 2:  # win
                 wins += 1
+
+            print(agent.eps_start)
 
             # plotting
             if agent.n_games % 100 == 0:

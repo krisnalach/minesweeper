@@ -39,7 +39,7 @@ class Minesweeper:
         mines_to_place = []
         x, y = first_click
         illegal_spots = self.get_neighbors(
-            x, y, 2, False
+            x, y, 1, False
         )  # ensuring that you can't insta-lose
         illegal_spots.append((x, y))  # get_neighbors doesn't consider itself
         # generating mines
@@ -227,22 +227,20 @@ class Minesweeper:
 
         if self.first_click:  # first click has no reward
             self.place_mines((x, y))
+            self.first_click = False
 
         if self.board[x][y] == -1:  # safe square
-            if (
-                self.is_progress(x, y) or self.first_click
-            ):  # reward meaningful moves (or the first move)
-                reward += 0.3
-                self.first_click = False
+            if self.is_progress(x, y):  # reward meaningful moves
+                reward += 1
             else:
                 reward -= 0.3  # punish 'guess' moves
             self.reveal(x, y)
         elif self.board[x][y] == -3:  # game over, loss
             self.lose()
             game_over = True
-            reward -= 1
+            reward -= 100
         elif self.board[x][y] in {0, 1, 2, 3, 4, 5, 6, 7, 8}:
-            reward -= 0.5  # punish "nothing" moves
+            reward -= 0.1  # punish "nothing" moves
 
         # calculate score (number of cleared squares)
         for i in range(self.n):
