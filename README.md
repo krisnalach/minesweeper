@@ -9,7 +9,7 @@ Adapting the Deep Q-Network implementation from https://www.youtube.com/watch?v=
 Currently my agent can learn simple games if presented statically. 
 Training stability is a WIP.
 
-## TODOs
+### TODOs
 Implement a target network
 Upload graphs showing performance
 
