@@ -1,13 +1,15 @@
 # minesweeper
 
-A game I made in Python using PyGame back in 2019. 4 years later, I wanted to complete and improve upon it to see how much I've improved as a coder.
+A continuation of my first ever Python project back in 2019.
+Updated with a smarter implementation, comments, and cleaner code overall.
 
-Starting over from scratch in "game.py"
-Focus is feeding this game into a reinforcement learning agent
-to be able to play minesweeper
+Game UI is a low priority. It is mostly complete, just has a few bugs.
 
-Game UI is a low priority at the moment
-Mostly complete but a few UI bugs
+Adapting the Deep Q-Network implementation from https://www.youtube.com/watch?v=L8ypSXwyBds.
+Currently my agent can learn simple games if presented statically. 
+Training stability is a WIP.
 
-Following the tutorial from https://www.youtube.com/watch?v=L8ypSXwyBds
-for implementing the DQN with PyTorch
+## TODOs
+Implement a target network
+Upload graphs showing performance
+
