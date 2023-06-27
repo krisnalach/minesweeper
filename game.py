@@ -231,14 +231,14 @@ class Minesweeper:
 
         if self.board[x][y] == -1:  # safe square
             if self.is_progress(x, y):  # reward meaningful moves
-                reward += 1
+                reward += 0.3
             else:
                 reward -= 0.3  # punish 'guess' moves
             self.reveal(x, y)
         elif self.board[x][y] == -3:  # game over, loss
             self.lose()
             game_over = True
-            reward -= 100
+            reward -= 2
         elif self.board[x][y] in {0, 1, 2, 3, 4, 5, 6, 7, 8}:
             reward -= 0.1  # punish "nothing" moves
 
@@ -247,6 +247,10 @@ class Minesweeper:
             for j in range(self.n):
                 if self.board[i][j] in {0, 1, 2, 3, 4, 5, 6, 7, 8}:
                     score += 1
+                elif (
+                    self.board[i][j] == -3
+                ):  # properly account for losses (possible BUG)
+                    score -= 1000
 
         if score == self.n**2 - self.mines:  # game over, win
             game_over = True
@@ -267,7 +271,8 @@ class Minesweeper:
         progress = False
         neighbors = self.get_neighbors(x, y, 1, False)
         for neighbor in neighbors:
-            if neighbor in {0, 1, 2, 3, 4, 5, 6, 7, 8}:
+            i, j = neighbor
+            if self.board[i][j] in {0, 1, 2, 3, 4, 5, 6, 7, 8}:
                 progress = True
                 break
         return progress

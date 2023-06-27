@@ -11,12 +11,12 @@ import time
 
 
 class Agent:
-    def __init__(self, epsilon, eps_dec, gamma, max_mem, batch_size, lr, n):
+    def __init__(self, eps_start, eps_end, gamma, max_mem, batch_size, lr, n):
         """
         Create an RL Agent
         Args:
-            epsilon - exploration rate
-            eps_dec - how much we decrement epsilon by each training step
+            eps_start - starting value of exploration rate
+            eps_end - ending value of exploration rate
             gamma - discount factor
             max_mem - replay memory size
             batch_size - size of training batches
@@ -24,9 +24,10 @@ class Agent:
             n - the size of the board (lengthwise)
         """
         self.n_games = 0
-        self.epsilon = epsilon  # exploration rate
-        self.eps_start = 1
-        self.eps_dec = eps_dec
+        self.eps_start = eps_start
+        self.eps_end = eps_end
+        self.epsilon = eps_start
+        self.decay_factor = 0.00005
         self.gamma = gamma  # discount factor
         self.max_mem = max_mem
         self.memory = deque(maxlen=self.max_mem)
@@ -34,7 +35,8 @@ class Agent:
         self.lr = lr
         self.n = n
         self.model = Linear_QNet(n**2, 128, 128, n**2)
-        self.trainer = QTrainer(self.model, lr, self.gamma)
+        target = Linear_QNet(n**2, 128, 128, n**2)
+        self.trainer = QTrainer(self.model, target, lr, self.gamma, 50)
         self.action_space = np.array([i for i in range(n**2)], dtype=int)
 
     def get_state(self, game):
@@ -81,11 +83,9 @@ class Agent:
         states, actions, rewards, next_states, dones = zip(*mini_sample)
         self.trainer.train_step(states, actions, rewards, next_states, dones)
 
-        self.eps_start = (
-            self.eps_start - self.eps_dec
-            if self.eps_start > self.epsilon
-            else self.epsilon
-        )
+        # reduce epsilon
+        # self.epsilon = max(self.epsilon * self.decay_factor, self.eps_end)
+        self.epsilon = max(self.epsilon - self.decay_factor, self.eps_end)
 
     def train_short_memory(self, state, action, reward, next_state, done):
         """
@@ -110,8 +110,14 @@ class Agent:
         Returns:
             The action the agent chose (integer representing the index of the square to click)
         """
-        if np.random.random() < self.eps_start:  # explorative factor
-            action = np.random.choice(self.action_space)
+        if np.random.random() < self.epsilon:  # explorative factor
+            temp = self.action_space
+            for j, i in enumerate(temp):  # getting rid of 'useless' moves
+                x = j // game.n
+                y = j % game.n
+                if game.board[x][y] in {0, 1, 2, 3, 4, 5, 6, 7, 8}:
+                    temp = temp[temp != j]
+            action = np.random.choice(temp)
         else:
             state0 = T.tensor(state, dtype=T.float)  # else, pick off of policy
             prediction = self.model(state0)
@@ -134,25 +140,26 @@ def train():
     wins = 0
     reward_tot = 0
     n = 5
+    mine_cnt = 2
     record = 0
     # initialize agent and game
     agent = Agent(
-        epsilon=1,
-        eps_dec=0,
+        eps_start=1,
+        eps_end=0.001,
         gamma=0,
-        max_mem=1000,
-        batch_size=64,
-        lr=0.005,
+        max_mem=10000,
+        batch_size=128,
+        lr=0.01,
         n=5,
     )
-    game = Minesweeper(n=5, mine_cnt=2)
+    game = Minesweeper(n=5, mine_cnt=mine_cnt)
 
     game.board = [
         [-1, -1, -1, -1, -1],
         [-1, -1, -1, -1, -1],
-        [-1, -1, -1, -1, -3],
         [-1, -1, -1, -1, -1],
-        [-1, -1, -1, -1, -3],
+        [-1, -1, -1, -1, -1],
+        [-1, -1, -3, -1, -3],
     ]
 
     game.first_click = False
@@ -204,9 +211,9 @@ def train():
             game.board = [
                 [-1, -1, -1, -1, -1],
                 [-1, -1, -1, -1, -1],
-                [-1, -1, -1, -1, -3],
                 [-1, -1, -1, -1, -1],
-                [-1, -1, -1, -1, -3],
+                [-1, -1, -1, -1, -1],
+                [-1, -1, -3, -1, -3],
             ]
             game.first_click = False
             agent.n_games += 1
@@ -217,15 +224,14 @@ def train():
                 record = score
                 agent.model.save()
 
-            if score == n**2 - 2:  # win
+            if score == n**2 - mine_cnt:  # win
                 wins += 1
-
-            print(agent.eps_start)
 
             # plotting
             if agent.n_games % 100 == 0:
                 plot_win_rate.append(wins / 100)
                 print(f"Average reward over this set: {reward_tot / 100}")
+                print(f"Epsilon value: {agent.epsilon}")
                 wins = 0
                 reward_tot = 0
                 plot(plot_win_rate)

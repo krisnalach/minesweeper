@@ -55,19 +55,34 @@ class Linear_QNet(nn.Module):
 
 
 class QTrainer:
-    def __init__(self, model, lr, gamma):
+    def __init__(self, model, target_model, lr, gamma, update_freq):
         """
         Training class using Q learning
         Args:
             model - the model used to train
+            target_model - the target model to compare Q values
             lr - the learning rate
             gamma - discount factor
+            update_freq - how often the target network is updated (in iterations)
         """
         self.model = model
+        self.target_model = target_model
         self.lr = lr
         self.gamma = gamma
         self.optimizer = optim.Adam(model.parameters(), lr=self.lr)
         self.loss = nn.MSELoss()
+        self.update_freq = update_freq
+        self.update_cntr = 0
+
+    def update_target_network(self):
+        """
+        Update the target network by loading the weights from the model
+        Args:
+            None
+        Returns:
+            Nothing
+        """
+        self.target_model.load_state_dict(self.model.state_dict())
 
     def train_step(self, state, action, reward, next_state, done):
         """
@@ -96,18 +111,25 @@ class QTrainer:
 
         # get the predicted Q values with current state
         pred = self.model(state)
+        pred_next = self.target_model(next_state)
 
         target = pred.clone()
         for i in range(len(done)):
             Q_new = reward[i]
             if not done[i]:
                 # apply R + y(max Q(next_state))
-                Q_new = reward[i] + self.gamma * T.max(self.model(next_state[i]))
+                Q_new = reward[i] + self.gamma * T.max(
+                    pred_next[i]
+                )  # modifications here, added target network
 
             target[i][T.argmax(action[i]).item()] = Q_new
 
         self.optimizer.zero_grad()
         loss = self.loss(target, pred)
         loss.backward()
-
         self.optimizer.step()
+
+        # update the target network when prerequisite is met
+        self.update_cntr += 1
+        if self.update_cntr % self.update_freq == 0:
+            self.update_target_network()
